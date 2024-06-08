@@ -46,7 +46,7 @@ $ kubectl get pod nginx -o yaml
 
 - 실제로 클러스터에 적용하진 않지만, 실험적으로 실행만 해보는 기능이다.
 - 아래 명령어를 실행하면 dry run도 실행되면서 yaml 파일도 추출해준다. 
-  - `-o yaml` 옵션은 해당 컴포넌트가 실행됐을 때만 yaml 파일을 추출할 수 있다.
+  - `-o yaml` 옵션은 해당 컨테이너가 실행 중일 때만 yaml 파일을 추출할 수 있다.
   - 그런 dry run을 하면 실제로 실행되진 않지만 실행되는 것처럼 동작하기 때문에 `-o yaml`을 사용할 수 있게 된다. 
   - 그래서 둘을 자주 혼용해 사용한다.
 
@@ -79,7 +79,7 @@ $ ls
 ... pod-nginx.yaml
 ```
 
-- deployment 컴포넌트에도 적용 가능하다.
+- deployment 오브젝트에도 적용 가능하다.
 
 ```shell
 $ kubectl create deploy nginx --image=nginx -o yaml --dry-run=client > deploy-nginx.yaml
