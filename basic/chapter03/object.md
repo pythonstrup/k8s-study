@@ -204,10 +204,137 @@ spec:
 
 ## CronJob
 
+- spec 부분에 추가된 것이 있다.
+  - `schedule` 설정은 crontab 시간을 설정한다.
+  - `jobTemplate`는 depolyment가 pod를 가지고 있는 것처럼 `cronJob`이 `job`을 오브젝트를 가지고 있는 모양새다.
+
+```shell
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cj-1m-hist3-curl 
+spec:
+  schedule: "*/1 * * * *"  
+  jobTemplate:
+    spec: 
+      template:
+        spec:
+          containers:
+          - name: net-tools
+            image: sysnet4admin/net-tools
+            command: ["curlchk",  "nginx"]
+          restartPolicy: Never
+```
+
+- 크론잡은 기본적으로 3회까지만 히스토리를 보존한다. (FIFO 방식으로 데이터가 지워진다.)
+- 그 이상을 히스토리를 보존하려면 `spec.successfulJobsHistoryLimit` 설정이 추가되어야 한다.
+
+```shell
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cj-1m-hist10-curl 
+spec:
+  schedule: "*/1 * * * *"  
+  successfulJobsHistoryLimit: 10
+  jobTemplate:
+    spec: 
+      template:
+        spec:
+          containers:
+          - name: net-tools
+            image: sysnet4admin/net-tools
+            command: ["curlchk",  "nginx"]
+          restartPolicy: Never
+```
+
 <br/>
 
 ## DaemonSet
 
+- DaemonSet과 Deployment의 차이?
+  - 데몬셋에는 replicas가 없다.
+  - 데몬셋은 워커 노드에 한 개씩 할당하도록 이미 설정이 되어 있기 때문에 replicas를 설정할 필요가 없다. 
+
+```shell
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: ds-nginx 
+  name: ds-nginx
+spec:
+  selector:
+    matchLabels:
+      app: po-nginx 
+  template:
+    metadata:
+      labels:
+        app: po-nginx
+    spec:
+      containers:
+      - name: nginx 
+        image: nginx 
+```
+
+- 현재 환경에 마스터 노드 1개와 워커 노드 3개가 있다고 해보자. 위의 데몬셋을 배포하면 어떻게 될까?
+- 3개의 파드가 뜰 것이다. 워커 노드가 3개 있기 때문이다.
+
+```shell
+$ kubectl apply -f ./daemonset.yaml
+daemonset.apps/ds-nginx created
+$ kubectl get po
+NAME                    READY   STATUS              RESTARTS   AGE
+ds-nginx-6krrp          0/1     ContainerCreating   0          3s
+ds-nginx-bs8p8          0/1     ContainerCreating   0          3s
+ds-nginx-xnrxm          0/1     ContainerCreating   0          3s
+```
+
+- 이제 데몬셋을 확인해보자.
+
+```shell
+$ kubectl get daemonsets.apps -A
+NAMESPACE        NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+default          ds-nginx      3         3         3       3            3           <none>                   2m39s
+kube-system      calico-node   4         4         4       4            4           kubernetes.io/os=linux   3d1h
+kube-system      kube-proxy    4         4         4       4            4           kubernetes.io/os=linux   3d1h
+metallb-system   speaker       4         4         4       4            4           kubernetes.io/os=linux   3d1h
+```
+
 <br/>
 
 ## StatefulSet
+
+- StatefulSet은 특이하게도 `spec.serviceName` 이라는 설정을 가지고 있다. (서비스 이름은 필수로 넣어야 하는 값이다.)
+
+```shell
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sts-chk-hn
+spec:
+  replicas: 3
+  serviceName: sts-svc-domain #statefulset need it
+  selector:
+    matchLabels:
+      app: sts
+  template:
+    metadata:
+      labels:
+        app: sts
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+```
+
+- 다른 오브젝트와는 다르게 이름에 해시값이 붙지 않고 고정 이름을 갖도록 설계되어 있다. (0부터 순서대로 이름 맨뒤에 붙는다.)
+- 상태값을 가지고 있다. 무슨 이름을 갖고 어떤 순서로 deploy 되어야 하는지에 대한 정보를 들고 있는 것이다.
+
+```shell
+$ kubectl get pod
+NAME           READY   STATUS    RESTARTS   AGE
+sts-chk-hn-0   1/1     Running   0          2m46s
+sts-chk-hn-1   1/1     Running   0          2m36s
+sts-chk-hn-2   1/1     Running   0          2m26s
+```
