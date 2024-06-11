@@ -130,6 +130,87 @@ spec:
 
 ## 외부이름 ExternalName
 
+- 도메인 이름을 위한 서비스 객체다.
+- `spec.type`을 ExternalName으로 설정한다.
+- `spec.externalName`은 외부 도메인 주소를 의미한다.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ex-url-1 
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: sysnet4admin.github.io
+```
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ex-url-2 
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: k8s-edu.github.io
+```
+
+- 클러스터 내부에서 외부이름이 잘 동작하는지를 확인하기 위해 net-tools 파드 하나를 띄워보자.
+
+```shell
+$ kubectl run net --image=sysnet4admin/net-tools-ifn
+```
+
+- 이제 net-tools에 접속해서(쿠버네티스 클러스터 안에서) nslookup 명령어를 실행해보자.
+
+```shell
+$ kubectl exec net -it -- /bin/bash
+[root@net /]# nslookup ex-url-1
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+ex-url-1.default.svc.cluster.local      canonical name = sysnet4admin.github.io.
+Name:   sysnet4admin.github.io
+Address: 185.199.108.153
+Name:   sysnet4admin.github.io
+Address: 185.199.109.153
+Name:   sysnet4admin.github.io
+Address: 185.199.110.153
+Name:   sysnet4admin.github.io
+Address: 185.199.111.153
+Name:   sysnet4admin.github.io
+Address: 2606:50c0:8003::153
+Name:   sysnet4admin.github.io
+Address: 2606:50c0:8002::153
+Name:   sysnet4admin.github.io
+Address: 2606:50c0:8001::153
+Name:   sysnet4admin.github.io
+Address: 2606:50c0:8000::153
+
+[root@net /]# nslookup ex-url-2
+Server:         10.96.0.10
+Address:        10.96.0.10#53
+
+ex-url-2.default.svc.cluster.local      canonical name = k8s-edu.github.io.
+Name:   k8s-edu.github.io
+Address: 185.199.110.153
+Name:   k8s-edu.github.io
+Address: 185.199.109.153
+Name:   k8s-edu.github.io
+Address: 185.199.108.153
+Name:   k8s-edu.github.io
+Address: 185.199.111.153
+Name:   k8s-edu.github.io
+Address: 2606:50c0:8001::153
+Name:   k8s-edu.github.io
+Address: 2606:50c0:8002::153
+Name:   k8s-edu.github.io
+Address: 2606:50c0:8003::153
+Name:   k8s-edu.github.io
+Address: 2606:50c0:8000::153
+```
+
 <br/>
 
 ## 클러스터주소 ClusterIP / 헤드리스 Headless
