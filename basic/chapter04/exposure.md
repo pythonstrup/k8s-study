@@ -215,6 +215,97 @@ Address: 2606:50c0:8000::153
 
 ## 클러스터주소 ClusterIP / 헤드리스 Headless
 
+### clusterIP
+
+- 클러스터 IP는 Pod와 Pod의 연결을 위한 내부용 IP이다. (클러스터 내부의 목적을 위해 사용된다.) 
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cl-nginx 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+```
+
+- 해당 서비스를 띄운 뒤 조회해보면 아래와 같다.
+
+```shell
+$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+cl-nginx     ClusterIP   10.102.51.251   <none>        80/TCP    14s
+```
+
+### headless
+
+- 헤드리스는 `spec.clusterIP`에 `None`이라고 선언하면 headless 타입이 된다.
+- 클러스터 IP와 동일하게 클러스터 내부에서 사용되지만 IP가 없는 상태다.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: hdl-nginx 
+spec:
+  selector:
+    app: deploy-nginx  
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  clusterIP: None
+```
+
+- 해당 서비스를 조회해보자. 실제로 IP가 없는 것을 확인할 수 있다.
+
+```shell
+$ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
+hdl-nginx    ClusterIP   None            <none>        80/TCP    10s
+```
+
+- Deployment로 pod를 띄우면 해시값이 뒤에 붙기 때문에 파드 이름이 매번 바뀌어 호스트 이름을 알 수가 없다.
+- StatefulSet과 Headless를 결합해 사용하면 어떨까?
+  - StatefulSet은 항상 같은 호스트 네임을 가지고 잇기 때문에 내부에서 도메인 이름으로 호출할 수 있는 구조다.
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sts-chk-hn
+spec:
+  replicas: 3
+  serviceName: sts-svc-domain #statefulset need it
+  selector:
+    matchLabels:
+      app: sts
+  template:
+    metadata:
+      labels:
+        app: sts
+    spec:
+      containers:
+      - name: chk-hn
+        image: sysnet4admin/chk-hn
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sts-svc-domain
+spec:
+  selector:
+    app: sts
+  ports:
+    - port: 80
+  clusterIP: None
+```
+
 <br/>
 
 ## 엔드포인트 Endpoints
