@@ -383,4 +383,56 @@ subsets:
 
 ## 인그레스 Ingress
 
+### 다른 서비스와의 차이점??
+
+- 인그레스는 기본적으로 서비스가 없다면 존재할 수 없다.
+- 인그레스는 경로에 대한 라우팅 정보를 제공하고, 실제 경로를 운용하는 것은 서비스이다.
+- 경로에 따라 알맞은 ClusterIP를 찾도록 도와준다.
+
+### 코드
+
+- `apiVersion`이 다른 것과는 다르게 특이하다. (`networking.k8s.io/v1`)
+- `kind`는 `Ingress`로 한다.
+- `metadata.annotations` 라는 특이한 기능이 있다.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-default
+            port:
+              number: 80
+      - path: /hn
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-hn
+            port:
+              number: 80
+      - path: /ip 
+        pathType: Prefix
+        backend:
+          service:
+            name: ing-ip
+            port:
+              number: 80
+```
+
+### Label과 Annotations?
+
+- k8s Object에 대한 별칭이라는 점에서 동일하지만 사용하는 주체가 다르다!
+- `Label`은 사람이 사용하려고 사용하는 것이다.
+- `Annotation`은 시스템이 k8s Object를 인지하기 위해 사용한다.
+
 <br/>
