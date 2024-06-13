@@ -310,6 +310,75 @@ spec:
 
 ## 엔드포인트 Endpoints
 
+### 로드밸런서 엔드포인트
+
+- 디플로이먼트와 로드밸런서를 띄우면 엔드포인트가 만들어진다.
+- 아래와 같은 경우 Pod가 3개 띄워지는데, 그러면 엔드포인트도 3개가 만들어진다.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-chk-ip
+  labels:
+    app: deploy-chk-ip
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: deploy-chk-ip
+  template:
+    metadata:
+      labels:
+        app: deploy-chk-ip
+    spec:
+      containers:
+        - name: chk-ip
+          image: sysnet4admin/chk-ip
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lb-chk-ip
+spec:
+  selector:
+    app: deploy-chk-ip
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+```
+
+### 서비스 엔드포인트
+
+- 먼저 서비스를 선언한다. (타입 선언이 되지 않으면 기본적으로 클러스터 IP로 생성된다.)
+- 그리고 `kind`를 `Endpoints`로 한다.
+  - ip(`192.168.1.11`)의 경우 로드밸런서로 미리 만들어둔 ip이다.
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-data
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-data
+subsets:
+  - addresses:
+      - ip: 192.168.1.11
+    ports:
+      - name: http
+        port: 80
+```
+
 <br/>
 
 ## 인그레스 Ingress
